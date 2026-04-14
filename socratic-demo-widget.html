@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Socratic Reasoning Lab — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --parchment: #faf6ef;
+    --warm-mid: #f0e8d8;
+    --gold: #b8860b;
+    --rust: #8b3a2a;
+    --sage: #4a5e4a;
+    --border: #d4c4a0;
+    --shadow: rgba(26,20,16,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .page-wrapper { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .lab-header {
+    text-align: center;
+    padding: 2.5rem 0 2rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 0.75rem;
+  }
+  .lab-header::before { content: '⚖'; display: block; font-size: 2rem; margin-bottom: 0.5rem; color: var(--gold); }
+  .lab-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; }
+  .lab-subtitle { font-size: 0.88rem; color: #6b5b45; margin-top: 0.5rem; font-style: italic; font-weight: 300; }
+
+  .demo-banner {
+    background: #fffbf0;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 0.75rem 1.1rem;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.8rem;
+    color: #6b4f10;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .demo-banner span { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+  .scenario-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .scenario-label {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; display: block;
+  }
+  .scenario-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+  .scenario-btn {
+    background: var(--parchment); border: 1px solid var(--border); border-radius: 3px;
+    padding: 0.6rem 0.8rem; font-family: 'Source Serif 4', serif; font-size: 0.82rem;
+    color: var(--ink); cursor: pointer; text-align: left; transition: all 0.18s ease; line-height: 1.4;
+  }
+  .scenario-btn:hover { background: var(--warm-mid); border-color: var(--gold); }
+  .scenario-btn.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+  .scenario-display {
+    background: var(--warm-mid); border-left: 3px solid var(--gold);
+    border-radius: 0 3px 3px 0; padding: 1rem 1.2rem;
+    font-size: 0.88rem; line-height: 1.7; color: #2a1f14; display: none;
+  }
+  .scenario-display.visible { display: block; }
+  .scenario-display strong { font-weight: 600; color: var(--rust); }
+
+  .chat-panel {
+    background: white; border: 1px solid var(--border);
+    border-radius: 4px; overflow: hidden; box-shadow: 0 2px 16px var(--shadow);
+  }
+  .chat-topbar {
+    background: var(--ink); padding: 0.8rem 1.2rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .topbar-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .topbar-title { font-family: 'Playfair Display', serif; font-size: 0.85rem; color: var(--parchment); font-style: italic; }
+  .topbar-status { margin-left: auto; font-size: 0.68rem; color: #8a7a5a; letter-spacing: 0.06em; text-transform: uppercase; }
+  .topbar-status.active { color: #7ab87a; }
+
+  .chat-messages {
+    min-height: 320px; max-height: 440px; overflow-y: auto;
+    padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg { display: flex; gap: 0.8rem; animation: fadeSlide 0.3s ease; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .msg-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600; margin-top: 2px;
+  }
+  .msg.user .msg-avatar { background: var(--sage); color: white; margin-left: auto; order: 2; }
+  .msg.assistant .msg-avatar { background: var(--gold); color: white; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-bubble { max-width: 78%; padding: 0.75rem 1rem; border-radius: 2px; font-size: 0.88rem; line-height: 1.65; }
+  .msg.user .msg-bubble { background: var(--sage); color: white; border-radius: 2px 2px 0 2px; }
+  .msg.assistant .msg-bubble {
+    background: var(--warm-mid); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 2px 2px 2px 0; font-style: italic;
+  }
+
+  .empty-state { text-align: center; padding: 3rem 2rem; color: #9a8a6a; }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+  .empty-state p { font-size: 0.85rem; line-height: 1.6; font-style: italic; }
+
+  .typing-indicator { display: none; align-items: center; gap: 0.3rem; padding: 0.6rem 1rem; background: var(--warm-mid); border: 1px solid var(--border); width: fit-content; border-radius: 2px; }
+  .typing-indicator.show { display: flex; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+  .chat-footer { border-top: 1px solid var(--border); padding: 1rem 1.2rem; background: #fdfaf5; }
+  .input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+  .chat-textarea {
+    flex: 1; border: 1px solid var(--border); border-radius: 3px;
+    padding: 0.65rem 0.9rem; font-family: 'Source Serif 4', serif; font-size: 0.88rem;
+    color: var(--ink); background: white; resize: none; min-height: 48px; max-height: 120px;
+    line-height: 1.5; transition: border-color 0.15s;
+  }
+  .chat-textarea:focus { outline: none; border-color: var(--gold); }
+  .chat-textarea::placeholder { color: #b0a080; font-style: italic; }
+  .send-btn {
+    background: var(--ink); color: var(--parchment); border: none; border-radius: 3px;
+    padding: 0.65rem 1.2rem; font-family: 'Source Serif 4', serif; font-size: 0.82rem;
+    font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: background 0.15s;
+    white-space: nowrap; height: 48px;
+  }
+  .send-btn:hover { background: #2e2420; }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+  .footer-hint { font-size: 0.7rem; color: #9a8a6a; margin-top: 0.5rem; font-style: italic; }
+
+  .export-bar { margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .export-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 3px;
+    padding: 0.4rem 0.9rem; font-size: 0.75rem; font-family: 'Source Serif 4', serif;
+    color: #6b5b45; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em;
+  }
+  .export-btn:hover { background: var(--warm-mid); border-color: var(--gold); }
+
+  .rubric-strip {
+    margin-top: 1.5rem; background: #f5f0e8;
+    border: 1px solid var(--border); border-radius: 4px; padding: 1rem 1.2rem;
+  }
+  .rubric-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.6rem; }
+  .rubric-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.4rem; }
+  .rubric-item { font-size: 0.78rem; color: #5a4a36; padding: 0.3rem 0; display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.4; }
+  .rubric-item::before { content: '◆'; color: var(--gold); font-size: 0.5rem; margin-top: 0.3rem; flex-shrink: 0; }
+
+  .how-it-works {
+    margin-top: 1.5rem; background: white; border: 1px solid var(--border);
+    border-radius: 4px; padding: 1.2rem 1.4rem;
+  }
+  .how-title { font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 0.8rem; color: var(--ink); }
+  .how-steps { display: flex; flex-direction: column; gap: 0.5rem; }
+  .how-step { font-size: 0.82rem; line-height: 1.55; color: #4a3a2a; display: flex; gap: 0.7rem; }
+  .step-num {
+    background: var(--gold); color: white; width: 20px; height: 20px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 700; flex-shrink: 0; margin-top: 0.1rem;
+  }
+
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--ink); color: var(--parchment);
+    padding: 0.7rem 1.2rem; border-radius: 3px; font-size: 0.82rem;
+    transform: translateY(60px); opacity: 0; transition: all 0.25s ease; z-index: 100;
+    font-family: 'Source Serif 4', serif;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <header class="lab-header">
+    <h1 class="lab-title">Socratic Reasoning Lab</h1>
+    <p class="lab-subtitle">Defend your analysis. Every claim will be examined.</p>
+  </header>
+
+  <div class="demo-banner">
+    <span>ℹ️</span>
+    <div><strong>Informational Demo.</strong> This version uses pre-scripted responses to illustrate how a live AI-powered version works. In the live version, Claude responds dynamically to any argument a student makes. This demo is safe to share publicly — no API key or student data is required.</div>
+  </div>
+
+  <!-- SCENARIO SELECTOR -->
+  <div class="scenario-panel">
+    <span class="scenario-label">Select a Scenario</span>
+    <div class="scenario-grid">
+      <button class="scenario-btn" onclick="selectScenario(0)">⚖️ Torts — Negligence</button>
+      <button class="scenario-btn" onclick="selectScenario(1)">🏛️ Constitutional Law</button>
+      <button class="scenario-btn" onclick="selectScenario(2)">📜 Estate Planning</button>
+      <button class="scenario-btn" onclick="selectScenario(3)">🤝 Contract Formation</button>
+      <button class="scenario-btn" onclick="selectScenario(4)">🧑‍⚖️ Ethics Dilemma</button>
+    </div>
+    <div id="scenarioDisplay" class="scenario-display"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-panel">
+    <div class="chat-topbar">
+      <div class="topbar-dot"></div>
+      <span class="topbar-title">Socratic Examiner — your reasoning will be questioned, not judged</span>
+      <span class="topbar-status" id="statusLabel">Awaiting argument</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="empty-state">
+        <div class="empty-icon">🏛️</div>
+        <p>Select a scenario above, then state your legal argument or position.<br>The examiner will question — never confirm — your reasoning.</p>
+      </div>
+    </div>
+    <div style="padding: 0 1.5rem;">
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+    <div class="chat-footer">
+      <div class="input-row">
+        <textarea id="userInput" class="chat-textarea" placeholder="State your argument or analysis here…" rows="2" onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">Submit →</button>
+      </div>
+      <p class="footer-hint">Press Enter to submit · Shift+Enter for new line · Copy your dialogue below before leaving</p>
+    </div>
+  </div>
+
+  <div class="export-bar">
+    <button class="export-btn" onclick="clearChat()">↺ Reset</button>
+    <button class="export-btn" onclick="copyTranscript()">⎘ Copy Transcript</button>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-it-works">
+    <p class="how-title">How the Live Version Works</p>
+    <div class="how-steps">
+      <div class="how-step"><div class="step-num">1</div><span>Student selects a scenario and reads the fact pattern, then types their initial legal argument or analysis into the chat.</span></div>
+      <div class="how-step"><div class="step-num">2</div><span>Claude — operating under a locked Socratic system prompt — responds only with a probing question. It never confirms, corrects, or explains. It exposes gaps in reasoning by asking the student to justify each claim.</span></div>
+      <div class="how-step"><div class="step-num">3</div><span>The student must respond to the question and defend their position. Claude continues probing until the student reaches a fully defended conclusion or exhausts a line of reasoning.</span></div>
+      <div class="how-step"><div class="step-num">4</div><span>The student copies the full transcript using the button below the chat and submits it as their Canvas or D2L assignment. The instructor grades reasoning quality using the rubric below — not whether the student reached the "right" answer.</span></div>
+      <div class="how-step"><div class="step-num">5</div><span>In the live version, the system prompt is invisible to students and cannot be overridden. Claude is constrained to ask one focused question per response and is explicitly instructed not to reward flattery or accept vague answers.</span></div>
+    </div>
+  </div>
+
+  <!-- RUBRIC -->
+  <div class="rubric-strip">
+    <div class="rubric-title">Reasoning Quality Indicators (for instructor rubric)</div>
+    <div class="rubric-items">
+      <div class="rubric-item">Identifies all relevant legal elements</div>
+      <div class="rubric-item">Applies rule to specific facts</div>
+      <div class="rubric-item">Anticipates counter-arguments</div>
+      <div class="rubric-item">Responds without circular logic</div>
+      <div class="rubric-item">Distinguishes analogous cases</div>
+      <div class="rubric-item">Reaches defensible conclusion</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCENARIOS = [
+  {
+    label: "Torts — Negligence",
+    text: `<strong>Scenario:</strong> Maria is jogging in a public park when she trips on a broken section of pavement maintained by the city. The crack has been present for 11 months. No warning signs were posted. Maria sustains a fractured wrist and misses six weeks of work.\n\n<strong>Your task:</strong> Analyze whether the city is liable in negligence. Address each element of the prima facie case using the facts provided.`,
+    exchanges: [
+      {
+        triggers: [],
+        response: "You've stated your position. Which specific element of negligence do you believe is most clearly established by the facts, and why does that element matter more than the others at this stage of your analysis?"
+      },
+      {
+        triggers: ["duty", "owed", "obligation"],
+        response: "You've identified a duty. What is the legal standard that defines how the city must maintain public property — and where does that standard come from?"
+      },
+      {
+        triggers: ["breach", "reasonable", "standard", "care", "maintain"],
+        response: "You've argued the city breached its duty. The crack existed for 11 months — does the length of time it existed matter legally, and if so, why?"
+      },
+      {
+        triggers: ["notice", "knew", "known", "months", "time"],
+        response: "You've raised the issue of notice. What is the distinction between actual notice and constructive notice, and which does this fact pattern support?"
+      },
+      {
+        triggers: ["cause", "causation", "but for", "proximate"],
+        response: "You've addressed causation. How would you distinguish factual cause from proximate cause in this scenario — and is either in dispute here?"
+      },
+      {
+        triggers: ["damages", "harm", "injury", "wrist", "work", "wages"],
+        response: "You've identified damages. Are all of Maria's losses — the fractured wrist and the lost wages — recoverable under the same theory, or do they require separate analysis?"
+      },
+      {
+        triggers: ["government", "immunity", "sovereign", "city", "municipal"],
+        response: "You've raised governmental immunity. Under what circumstances does a municipality waive immunity for negligent maintenance of public property, and has that condition been met here?"
+      },
+      {
+        response: "That's a reasonable position. Before you conclude, what is the strongest counter-argument the city's attorney would raise, and how would you respond to it?"
+      }
+    ]
+  },
+  {
+    label: "Constitutional Law",
+    text: `<strong>Scenario:</strong> A state legislature passes a law requiring all public school teachers to begin each school day with a moment of "silent reflection." The law does not specify the purpose of the silence. A parent challenges the law on First Amendment grounds.\n\n<strong>Your task:</strong> Analyze whether this law survives constitutional scrutiny.`,
+    exchanges: [
+      {
+        triggers: [],
+        response: "You've identified a constitutional challenge. Which analytical framework — the Lemon test, the endorsement test, or the coercion test — do you believe applies here, and why that one over the others?"
+      },
+      {
+        triggers: ["lemon", "secular", "purpose", "effect", "entanglement"],
+        response: "You've invoked the Lemon test. What specific evidence in the fact pattern speaks to whether the legislature had a secular purpose — and does the absence of a stated purpose help or hurt the law?"
+      },
+      {
+        triggers: ["endorse", "reasonable observer", "perception"],
+        response: "You've raised endorsement. From whose perspective does the reasonable observer standard operate, and why does that matter for a law directed at young students?"
+      },
+      {
+        triggers: ["coerce", "pressure", "compel", "student"],
+        response: "You've argued coercion. What makes the school context different from, say, a moment of silence in a state legislature — and does that distinction affect the constitutional analysis?"
+      },
+      {
+        triggers: ["silence", "neutral", "voluntary", "speech"],
+        response: "You've called the silence neutral. If a student uses that minute to pray, has the state facilitated religious exercise — and if so, does that create a constitutional problem?"
+      },
+      {
+        triggers: ["precedent", "wallace", "jaffree", "engel", "schempp"],
+        response: "You've cited precedent. What specific holding from that case applies here — and is this fact pattern distinguishable in any material way?"
+      },
+      {
+        response: "You've built a substantial argument. What is the strongest case the state could make in defense of this law, and does your analysis fully address it?"
+      }
+    ]
+  },
+  {
+    label: "Estate Planning",
+    text: `<strong>Scenario:</strong> Robert, age 78, asks you to draft a will leaving his entire estate to a charity. His adult daughter Diane believes he lacks testamentary capacity. Robert was recently diagnosed with early-stage Alzheimer's. He knew your name, the date, and described his assets clearly during your intake meeting.\n\n<strong>Your task:</strong> Analyze whether Robert has testamentary capacity and how you should proceed as his attorney.`,
+    exchanges: [
+      {
+        triggers: [],
+        response: "You've stated a conclusion about capacity. What is the precise legal standard for testamentary capacity — and which of its elements do you consider most in dispute on these facts?"
+      },
+      {
+        triggers: ["know", "nature", "extent", "property", "assets"],
+        response: "You've noted Robert described his assets. What would it mean legally if he knew what he owned but did not fully understand what executing a will means — would capacity still be satisfied?"
+      },
+      {
+        triggers: ["natural objects", "bounty", "family", "diane", "daughter"],
+        response: "You've raised the natural objects of bounty requirement. Robert is leaving everything to charity and nothing to his daughter — is that relevant to a capacity analysis, or only to an undue influence analysis?"
+      },
+      {
+        triggers: ["alzheimer", "diagnosis", "mental", "condition", "cognitive"],
+        response: "You've raised the Alzheimer's diagnosis. Does a diagnosis of early-stage Alzheimer's automatically defeat testamentary capacity, or does something more need to be shown?"
+      },
+      {
+        triggers: ["lucid", "interval", "moment", "time of execution"],
+        response: "You've mentioned the possibility of a lucid interval. What evidence would you gather to document Robert's capacity at the specific time the will is executed — not just at intake?"
+      },
+      {
+        triggers: ["undue influence", "diane", "pressure", "charity"],
+        response: "You've addressed capacity. Now consider a separate but related issue — could Diane challenge this will on undue influence grounds even if capacity is established? What would she need to prove?"
+      },
+      {
+        triggers: ["proceed", "steps", "attorney", "document", "video", "witness"],
+        response: "You've proposed steps to protect the execution. Which of those steps directly addresses the specific vulnerability this fact pattern presents — and which is most likely to withstand a later challenge?"
+      },
+      {
+        response: "You've addressed the capacity question. What professional responsibility obligation, if any, do you have toward Diane — and does it conflict with your duties to Robert?"
+      }
+    ]
+  },
+  {
+    label: "Contract Formation",
+    text: `<strong>Scenario:</strong> On Monday, Supplier emails Buyer: "I can deliver 500 units at $40 each — offer open until Friday." On Wednesday, Buyer emails back: "We accept, but need delivery by the 15th." On Thursday, Supplier emails: "We cannot meet the 15th — original terms stand."\n\n<strong>Your task:</strong> Analyze whether a contract was formed and on what terms.`,
+    exchanges: [
+      {
+        triggers: [],
+        response: "You've stated a position on contract formation. Let's begin with the Monday email — does it constitute a valid offer, and what elements make something an offer rather than an invitation to negotiate?"
+      },
+      {
+        triggers: ["offer", "definite", "terms", "price", "quantity"],
+        response: "You've identified an offer. The supplier said the offer is 'open until Friday' — what legal effect, if any, does that language have on the supplier's ability to revoke before Friday?"
+      },
+      {
+        triggers: ["firm offer", "ucc", "merchant", "article 2", "revoke"],
+        response: "You've raised the UCC firm offer rule. What must be true for that rule to apply — and does this fact pattern satisfy all of those conditions?"
+      },
+      {
+        triggers: ["accept", "counteroffer", "mirror image", "modification", "delivery"],
+        response: "You've characterized Wednesday's email as a counteroffer. Under common law, how does the mirror image rule apply — and does the UCC treat this differently for merchants?"
+      },
+      {
+        triggers: ["battle of forms", "2-207", "additional terms", "material"],
+        response: "You've invoked UCC 2-207. Under that section, does the delivery date term become part of the contract automatically, or does it depend on whether it materially alters the original offer?"
+      },
+      {
+        triggers: ["material alteration", "materially", "change", "different"],
+        response: "You've argued the delivery date is or is not a material alteration. What factors determine materiality under 2-207, and how do those factors apply to a specific delivery date in a commercial transaction?"
+      },
+      {
+        triggers: ["no contract", "rejected", "terminated", "thursday"],
+        response: "You've concluded no contract was formed. If that's correct, what options does Buyer have — and is there any theory under which Thursday's email could be read as an acceptance of the original terms?"
+      },
+      {
+        response: "You've analyzed the formation question. One final issue: if a court finds a contract was formed but the terms are disputed, what gap-filling rules would apply to the delivery date?"
+      }
+    ]
+  },
+  {
+    label: "Ethics Dilemma",
+    text: `<strong>Scenario:</strong> You represent a corporate client in ongoing litigation. During a document review, a paralegal finds emails suggesting your client's CFO destroyed relevant evidence before litigation began. Your client has not disclosed this to you. Opposing counsel has filed a discovery request that would cover these documents.\n\n<strong>Your task:</strong> Identify your ethical obligations and how you would proceed.`,
+    exchanges: [
+      {
+        triggers: [],
+        response: "You've identified a set of obligations. Which one do you consider the most immediate — and what specific Model Rule or professional responsibility principle gives rise to it?"
+      },
+      {
+        triggers: ["confidentiality", "1.6", "secret", "disclose", "cannot tell"],
+        response: "You've raised the duty of confidentiality. Does Rule 1.6 apply here without limitation — or are there exceptions that might be triggered by what the paralegal found?"
+      },
+      {
+        triggers: ["candor", "3.3", "tribunal", "court", "fraud"],
+        response: "You've identified the duty of candor to the tribunal. What is the threshold for when that duty requires disclosure over the client's objection — and has that threshold been reached on these facts?"
+      },
+      {
+        triggers: ["spoliation", "obstruction", "evidence", "destroyed", "CFO"],
+        response: "You've named the conduct as spoliation. Before you can advise the client, what additional facts do you need to confirm — and how does timing relative to the litigation hold affect your analysis?"
+      },
+      {
+        triggers: ["client", "confront", "inform", "tell", "communicate"],
+        response: "You've said you would speak with the client. Under Rule 1.4, what must you communicate — and under Rule 1.2, who ultimately controls decisions about disclosure?"
+      },
+      {
+        triggers: ["withdraw", "1.16", "noisy withdrawal", "disengage"],
+        response: "You've raised withdrawal. What is the difference between ordinary withdrawal and what's sometimes called a 'noisy withdrawal' — and when, if ever, is the latter permissible or required?"
+      },
+      {
+        triggers: ["paralegal", "supervise", "5.3", "duty", "staff"],
+        response: "You've involved the paralegal in your analysis. What supervisory duty, if any, does Rule 5.3 impose on you regarding the paralegal's handling of this information going forward?"
+      },
+      {
+        response: "You've mapped most of the relevant obligations. What is the single action you must take first — before any other step — and why does sequence matter in this scenario?"
+      }
+    ]
+  }
+];
+
+let currentScenario = null;
+let exchangeCount = 0;
+let messages = [];
+let isLoading = false;
+
+function selectScenario(idx) {
+  currentScenario = SCENARIOS[idx];
+  exchangeCount = 0;
+  document.querySelectorAll('.scenario-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  const disp = document.getElementById('scenarioDisplay');
+  disp.innerHTML = currentScenario.text.replace(/\n/g, '<br>');
+  disp.classList.add('visible');
+  clearChat(true);
+}
+
+function clearChat(silent) {
+  messages = [];
+  exchangeCount = 0;
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = `<div class="empty-state"><div class="empty-icon">🏛️</div><p>Select a scenario above, then state your legal argument or position.<br>The examiner will question — never confirm — your reasoning.</p></div>`;
+  setStatus('Awaiting argument', false);
+  if (!silent) showToast('Conversation reset.');
+}
+
+function setStatus(text, active) {
+  const el = document.getElementById('statusLabel');
+  el.textContent = text;
+  el.className = 'topbar-status' + (active ? ' active' : '');
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function getResponse(userText) {
+  const lower = userText.toLowerCase();
+  const exchanges = currentScenario.exchanges;
+
+  // Try to find a trigger match
+  for (let i = 0; i < exchanges.length - 1; i++) {
+    const ex = exchanges[i];
+    if (ex.triggers && ex.triggers.length > 0) {
+      if (ex.triggers.some(t => lower.includes(t))) {
+        return ex.response;
+      }
+    }
+  }
+
+  // Fallback: cycle through responses by exchange count
+  const idx = Math.min(exchangeCount, exchanges.length - 1);
+  return exchanges[idx].response;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+  if (!currentScenario) { showToast('Please select a scenario first.'); return; }
+
+  input.value = '';
+  appendMessage('user', text);
+  messages.push({ role: 'user', content: text });
+
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('typingIndicator').classList.add('show');
+  setStatus('Examining…', true);
+
+  // Simulate thinking delay
+  const delay = 1200 + Math.random() * 900;
+  await new Promise(r => setTimeout(r, delay));
+
+  const reply = getResponse(text);
+  exchangeCount++;
+  messages.push({ role: 'assistant', content: reply });
+  appendMessage('assistant', reply);
+
+  document.getElementById('typingIndicator').classList.remove('show');
+  setStatus('Awaiting your response', false);
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function appendMessage(role, text) {
+  const box = document.getElementById('chatMessages');
+  const empty = box.querySelector('.empty-state');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? 'You' : '⚖'}</div>
+    <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+  `;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function copyTranscript() {
+  if (!messages.length) { showToast('No conversation to copy yet.'); return; }
+  const scenario = currentScenario ? `SCENARIO: ${currentScenario.label}\n${'─'.repeat(50)}\n\n` : '';
+  const text = scenario + messages.map(m =>
+    `${m.role === 'user' ? 'STUDENT' : 'EXAMINER'}:\n${m.content}`
+  ).join('\n\n─────────────\n\n');
+  navigator.clipboard.writeText(text).then(() => showToast('Transcript copied to clipboard.'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
